@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "mimo-vision": {
+      "command": "python",
+      "args": ["path/to/mimo-vision/server.py"]
+    }
+  }
+}

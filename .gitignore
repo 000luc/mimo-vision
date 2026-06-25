@@ -1,0 +1,12 @@
+# API Key 配置（含敏感信息，不要提交）
+config.json
+
+# Python 缓存
+__pycache__/
+*.pyc
+*.pyo
+
+# 测试临时文件
+_test_*.py
+_test.*.png
+_test.*.jpg
