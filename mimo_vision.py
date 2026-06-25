@@ -118,27 +118,18 @@ def encode_image(image_path: str) -> tuple:
     return f"data:{mime_type};base64,{img_b64}", mime_type
 
 
-def analyze_image(image_path: str, prompt: str = None, config: dict = None) -> str:
+def _call_mimo_api(data_uri: str, prompt: str, config: dict) -> str:
     """
-    调用 Mimo API 识别图片内容
+    调用 Mimo API 识图（核心方法，data_uri 已编码好）
 
     Args:
-        image_path: 图片文件路径
-        prompt: 提示词，不传则使用 DEFAULT_PROMPT
-        config: 配置字典，不传则自动加载
+        data_uri: 图片 data URI，如 "data:image/png;base64,xxxxx"
+        prompt: 提示词
+        config: 配置字典
 
     Returns:
         str: API 返回的识别结果文本
     """
-    if config is None:
-        config = load_config()
-    validate_config(config)
-
-    if prompt is None:
-        prompt = DEFAULT_PROMPT
-
-    data_uri, _ = encode_image(image_path)
-
     payload = {
         "model": config["model"],
         "messages": [
@@ -173,3 +164,62 @@ def analyze_image(image_path: str, prompt: str = None, config: dict = None) -> s
         raise RuntimeError(f"API 错误 (HTTP {e.code}): {err_body}")
     except URLError as e:
         raise RuntimeError(f"网络错误: {e.reason}")
+
+
+def analyze_image(image_path: str, prompt: str = None, config: dict = None) -> str:
+    """
+    调用 Mimo API 识别本地图片文件内容
+
+    Args:
+        image_path: 图片文件路径
+        prompt: 提示词，不传则使用 DEFAULT_PROMPT
+        config: 配置字典，不传则自动加载
+
+    Returns:
+        str: API 返回的识别结果文本
+    """
+    if config is None:
+        config = load_config()
+    validate_config(config)
+
+    if prompt is None:
+        prompt = DEFAULT_PROMPT
+
+    data_uri, _ = encode_image(image_path)
+    return _call_mimo_api(data_uri, prompt, config)
+
+
+def analyze_image_data(
+    image_data: str,
+    image_format: str = "png",
+    prompt: str = None,
+    config: dict = None,
+) -> str:
+    """
+    调用 Mimo API 识别图片内容（直接传 base64 数据，不依赖文件路径）
+
+    Args:
+        image_data: 图片的 base64 编码字符串
+        image_format: 图片格式，默认 png，支持 png/jpg/jpeg/gif/bmp/webp
+        prompt: 提示词，不传则使用 DEFAULT_PROMPT
+        config: 配置字典，不传则自动加载
+
+    Returns:
+        str: API 返回的识别结果文本
+    """
+    if config is None:
+        config = load_config()
+    validate_config(config)
+
+    if prompt is None:
+        prompt = DEFAULT_PROMPT
+
+    fmt = image_format.lower().lstrip(".")
+    mime_type = MIME_MAP.get(f".{fmt}")
+    if not mime_type:
+        raise ValueError(
+            f"不支持的图片格式 '{fmt}'，支持: {', '.join(SUPPORTED_EXTENSIONS)}"
+        )
+
+    data_uri = f"data:{mime_type};base64,{image_data}"
+    return _call_mimo_api(data_uri, prompt, config)
